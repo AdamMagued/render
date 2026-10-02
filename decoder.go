@@ -40,7 +40,19 @@ func DefaultDecoder(r *http.Request, v interface{}) error {
 // DecodeJSON decodes a given reader into an interface using the json decoder.
 func DecodeJSON(r io.Reader, v interface{}) error {
 	defer io.Copy(io.Discard, r) //nolint:errcheck
-	return json.NewDecoder(r).Decode(v)
+
+	dec := json.NewDecoder(r)
+	if err := dec.Decode(v); err != nil {
+		return err
+	}
+	var extra struct{}
+	if err := dec.Decode(&extra); err != io.EOF {
+		if err == nil {
+			return errors.New("render: extra data after JSON payload")
+		}
+		return err
+	}
+	return nil
 }
 
 // DecodeXML decodes a given reader into an interface using the xml decoder.
